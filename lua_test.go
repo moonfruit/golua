@@ -18,5 +18,10 @@ func TestNewState(t *testing.T) {
 	err = state.Load(bytes.NewReader(code), "re.lua", LoadText)
 	require.NoError(t, err)
 
+	state.PrintStack()
+
+	//state.Call(0, 1)
+	//state.PrintStack()
+
 	state.Close()
 }

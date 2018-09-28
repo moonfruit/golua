@@ -1,8 +1,7 @@
 package golua
 
 // #include <lua.h>
-//
-// extern const char *goReader(lua_State *L, void *ud, size_t *sz);
+// #include "cgo.h"
 import "C"
 import (
 	"fmt"
@@ -367,13 +366,15 @@ func (s *State) Load(reader io.Reader, name string, mode LoadMode) error {
 		mode = LoadBoth
 	}
 
+	s.PushString(name)
+
 	cstr := C.CString(name)
 	defer cfree(cstr)
 
 	id := pool.Ref(newReaderCtx(reader))
 	defer pool.UnRef(id)
 
-	return fromLua(C.lua_load(s.L, (C.lua_Reader)(C.goReader), unsafe.Pointer(&id), cstr, mode.mode()))
+	return fromLua(C.load(s.L, (*C.char)(unsafe.Pointer(id)), cstr, mode.mode()))
 }
 
 // TODO: int (lua_dump) (lua_State *L, lua_Writer writer, void *data, int strip);

@@ -1,37 +1,53 @@
 package golua
 
 import (
+	"reflect"
 	"sync"
-	"unsafe"
 )
 
-var pool = objectPool{}
+var pool = objPool{}
 
-type objectPool struct {
-	store map[uintptr]interface{}
+type objRef struct {
+	obj interface{}
+	cnt int
+}
+
+type objPool struct {
+	store map[uintptr]*objRef
 	mutex sync.RWMutex
 }
 
-func (p *objectPool) Ref(object interface{}) uintptr {
-	id := uintptr(unsafe.Pointer(&object))
+func (p *objPool) Ref(obj interface{}) uintptr {
+	id := reflect.ValueOf(obj).Pointer()
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
 	if p.store == nil {
-		p.store = make(map[uintptr]interface{})
+		p.store = make(map[uintptr]*objRef)
 	}
 
-	p.store[id] = object
+	ref, ok := p.store[id]
+	if ok {
+		ref.cnt++
+	} else {
+		p.store[id] = &objRef{obj, 1}
+	}
+
 	return id
 }
 
-func (p *objectPool) UnRef(id uintptr) {
+func (p *objPool) UnRef(id uintptr) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	object, ok := p.store[id]
+	ref, ok := p.store[id]
 	if !ok {
+		return
+	}
+
+	ref.cnt--
+	if ref.cnt > 0 {
 		return
 	}
 
@@ -40,15 +56,19 @@ func (p *objectPool) UnRef(id uintptr) {
 	type Closer interface {
 		Close()
 	}
-	if closer, ok := object.(Closer); ok {
+	if closer, ok := ref.obj.(Closer); ok {
 		closer.Close()
 	}
 }
 
-func (p *objectPool) Get(id uintptr) (interface{}, bool) {
+func (p *objPool) Get(id uintptr) (interface{}, bool) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
-	object, ok := p.store[id]
-	return object, ok
+	ref, ok := p.store[id]
+	if !ok {
+		return nil, false
+	}
+
+	return ref.obj, true
 }
