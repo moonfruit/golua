@@ -1,14 +1,23 @@
 package golua
 
-// #include <lua.h>
+/*
+#include <lua.h>
+#include <lauxlib.h>
+
+const char *empty = "";
+const char *modeB = "b";
+const char *modeT = "t";
+const char *modeBT = "bt";
+*/
 import "C"
 import (
 	"fmt"
-	"unsafe"
 )
 
 type Integer = int64
 type Number = float64
+
+var empty = C.empty
 
 // MultiRet is the option for multiple returns in `Call()` and `PCall()`.
 const MultiRet = C.LUA_MULTRET
@@ -19,12 +28,18 @@ const (
 	RegistryGlobals    = C.LUA_RIDX_GLOBALS
 )
 
-func UpValueIndex(idx int) int {
+const (
+	KeyLoadedTable  = "_LOADED"
+	KeyPreLoadTable = "_PRELOAD"
+)
+
+func UpValue(idx int) int {
 	return RegistryIndex - idx
 }
 
 type Status int
 
+//noinspection GoVarAndConstTypeMayBeOmitted
 const (
 	statusOK    Status = C.LUA_OK
 	StatusYield Status = C.LUA_YIELD
@@ -33,6 +48,9 @@ const (
 	ErrMem      Status = C.LUA_ERRMEM
 	ErrGcMM     Status = C.LUA_ERRGCMM
 	ErrErr      Status = C.LUA_ERRERR
+	ErrFile     Status = C.LUA_ERRFILE
+
+	ErrInvalidBuffer Status = 100
 )
 
 func fromLua(st C.int) error {
@@ -59,6 +77,10 @@ func (s Status) Error() string {
 		return "error while running a __gc metamethod"
 	case ErrErr:
 		return "error while running the message handler"
+	case ErrFile:
+		return "file error"
+	case ErrInvalidBuffer:
+		return "invalid buffer"
 	default:
 		return fmt.Sprintf("unknown error `%d`", s)
 	}
@@ -66,6 +88,7 @@ func (s Status) Error() string {
 
 type Type int
 
+//noinspection GoVarAndConstTypeMayBeOmitted
 const (
 	TypeNone          Type = C.LUA_TNONE
 	TypeNil           Type = C.LUA_TNIL
@@ -85,6 +108,7 @@ func (ty Type) String() string {
 
 type ArithOp int
 
+//noinspection GoVarAndConstTypeMayBeOmitted
 const (
 	OPADD  ArithOp = C.LUA_OPADD
 	OPSUB  ArithOp = C.LUA_OPSUB
@@ -104,6 +128,7 @@ const (
 
 type CompareOp int
 
+//noinspection GoVarAndConstTypeMayBeOmitted
 const (
 	OPEQ CompareOp = C.LUA_OPEQ
 	OPLT CompareOp = C.LUA_OPLT
@@ -112,6 +137,7 @@ const (
 
 type GcOption int
 
+//noinspection GoVarAndConstTypeMayBeOmitted
 const (
 	GcStop       GcOption = C.LUA_GCSTOP
 	GcRestart    GcOption = C.LUA_GCRESTART
@@ -129,26 +155,19 @@ type LoadMode int
 const (
 	LoadBinary LoadMode = 1
 	LoadText   LoadMode = 1 << 1
-	LoadBoth            = LoadBinary | LoadText
-)
-
-var (
-	empty  = (*C.char)(unsafe.Pointer(&[]byte{0}[0]))
-	modeB  = (*C.char)(unsafe.Pointer(&[]byte{'b', 0}[0]))
-	modeT  = (*C.char)(unsafe.Pointer(&[]byte{'t', 0}[0]))
-	modeBT = (*C.char)(unsafe.Pointer(&[]byte{'b', 't', 0}[0]))
+	LoadAll             = LoadBinary | LoadText
 )
 
 func (m LoadMode) mode() *C.char {
 	if m&LoadBinary != 0 {
 		if m&LoadText != 0 {
-			return modeBT
+			return nil
 		} else {
-			return modeB
+			return C.modeB
 		}
 
 	} else if m&LoadText != 0 {
-		return modeT
+		return C.modeT
 	}
 
 	return empty
