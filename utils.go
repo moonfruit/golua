@@ -6,81 +6,56 @@ import (
 	"os"
 )
 
-func (s State) PrintStack() error {
+func (s *State) PrintStack() error {
 	return s.PrintStackf(os.Stdout)
 }
 
-func (s State) PrintStackl(l Logger) error {
-	return s.PrintStackf(logWriter{l})
-}
+var newline = []byte{'\n'}
 
-func (s State) PrintStackf(w io.Writer) error {
-	s.CheckStack(2)
-
-	if w == nil {
-		w = os.Stdout
-	}
-	w = wrapWriter(w)
-
-	for i := s.GetTop(); i > 0; i-- {
-		fmt.Fprintf(w, "|-- %02d: type<%v> value=`%s`", i, s.Type(i), s.ToString(i))
-		s.Pop(1)
-	}
-
-	main := s.PushThread()
-	fmt.Fprintf(w, "`-- 00: type<%v> main<%v> value=`%s`", s.Type(-1), main, s.ToString(-1))
-	s.Pop(2)
-
-	return nil
-}
-
-func wrapWriter(w io.Writer) io.Writer {
-	if lw, ok := w.(LineWriter); ok {
-		return lineWriter{lw}
-	}
-	return proxyWriter{w}
-}
-
-type LineWriter interface {
-	io.Writer
-	WriteLine(p []byte) (n int, err error)
-}
-
-type lineWriter struct {
-	LineWriter
-}
-
-func (w lineWriter) Write(p []byte) (int, error) {
-	return w.WriteLine(p)
-}
-
-type proxyWriter struct {
-	w io.Writer
-}
-
-func (w proxyWriter) Write(p []byte) (int, error) {
-	n, err := w.w.Write(p)
-	if err != nil {
-		return n, err
-	}
-
-	n2, err := w.w.Write([]byte{'\n'})
-	return n + n2, err
+func (s *State) PrintStackf(w io.Writer) error {
+	return s.RawPrintStack(func(f string, a ...interface{}) error {
+		if _, err := fmt.Fprintf(w, f, a...); err != nil {
+			return err
+		}
+		_, err := w.Write(newline)
+		return err
+	})
 }
 
 type Logger interface {
-	Log(args ...interface{})
+	Logf(format string, args ...interface{})
 }
 
-type logWriter struct {
-	l Logger
+func (s *State) PrintStackl(l Logger) error {
+	return s.RawPrintStack(func(f string, a ...interface{}) error {
+		l.Logf(f, a...)
+		return nil
+	})
 }
 
-func (w logWriter) Write(p []byte) (n int, err error) {
-	panic("Not support")
-}
+func (s *State) RawPrintStack(printf func(string, ...interface{}) error) error {
+	if !s.RawCheckStack(2) {
+		return ErrMem
+	}
 
-func (w logWriter) WriteLine(p []byte) (n int, err error) {
-	w.l.Log(string(p))
-	return len(p), nil
+	for i := s.GetTop(); i > 0; i-- {
+		value := s.ToString(i)
+		s.Pop(1)
+
+		if err := printf("|-- %02d: type<%v> value=`%s`", i, s.Type(i), value); err != nil {
+			return err
+		}
+	}
+
+	main := s.PushThread()
+
+	ty := s.Type(-1)
+	value := s.ToString(-1)
+	s.Pop(2)
+
+	if err := printf("`-- 00: type<%v> main<%v> value=`%s`", ty, main, value); err != nil {
+		return err
+	}
+
+	return nil
 }

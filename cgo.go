@@ -11,6 +11,8 @@ package golua
 import "C"
 import (
 	"io"
+	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -22,27 +24,38 @@ func cfree(p *C.char) {
 	C.free(unsafe.Pointer(p))
 }
 
+//export goFree
+func goFree(L *C.lua_State, ud uintptr) {
+	mainStateFor(L).UnRefGoValue(ud)
+}
+
+//export goCall
+func goCall(L *C.lua_State, ud uintptr) C.int {
+	state := mainStateFor(L)
+	fun := state.GetGoValue(ud).(GoFunction)
+	return C.int(fun(state))
+}
+
 //export goReader
-func goReader(L *C.lua_State, ud uintptr, sz *C.size_t) uintptr {
-	val, _ := pool.Get(ud)
-	ctx := val.(*goReaderCtx)
+func goReader(L *C.lua_State, ud unsafe.Pointer, sz *C.size_t) *C.char {
+	ctx := mainStateFor(L).GetGoValue(uintptr(ud)).(*goReaderCtx)
 
 	for ctx.err == nil {
 		var n int
-		n, ctx.err = ctx.Read(ctx.buf[:])
+		n, ctx.err = ctx.Read(ctx.Bytes)
 		if n > 0 {
 			*sz = C.size_t(n)
-			return (uintptr)(unsafe.Pointer(&ctx.buf[0]))
+			return (*C.char)(ctx.Pointer)
 		}
 	}
 
 	*sz = 0
-	return 0
+	return nil
 }
 
 type goReaderCtx struct {
 	io.Reader
-	buf []byte
+	*hackedSlice
 	err error
 }
 
@@ -50,9 +63,46 @@ func newReaderCtxSize(r io.Reader, size int) *goReaderCtx {
 	if size <= 0 {
 		size = defaultBufSize
 	}
-	return &goReaderCtx{Reader: r, buf: make([]byte, size)}
+	return &goReaderCtx{Reader: r, hackedSlice: newSlice(size)}
 }
 
 func newReaderCtx(r io.Reader) *goReaderCtx {
 	return newReaderCtxSize(r, defaultBufSize)
+}
+
+type hackedSlice struct {
+	Bytes    []byte
+	Pointer  unsafe.Pointer
+	needFree bool
+}
+
+func newSlice(size int) *hackedSlice {
+	return newSliceAt(C.malloc(C.size_t(size)), size, true)
+}
+
+func newSliceAt(pointer unsafe.Pointer, size int, needFree bool) *hackedSlice {
+	s := &hackedSlice{Pointer: pointer, needFree: needFree}
+
+	if needFree {
+		runtime.SetFinalizer(s, func(s *hackedSlice) {
+			s.free()
+		})
+	}
+
+	h := (*reflect.SliceHeader)(unsafe.Pointer(&s.Bytes))
+	h.Len = size
+	h.Cap = size
+	h.Data = uintptr(pointer)
+
+	return s
+}
+
+func (s *hackedSlice) free() {
+	if s.Bytes != nil {
+		s.Bytes = nil
+		if s.needFree {
+			C.free(s.Pointer)
+			s.Pointer = nil
+		}
+	}
 }

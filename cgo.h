@@ -3,8 +3,12 @@
 
 #include <lua.h>
 
-int load(lua_State *L, char *ctx, const char *name, const char *mode);
+#define META_GO_FUNCTION "golua.GoFunction"
 
-const char *goReader(lua_State *L, void *ud, size_t *sz);
+// c helper functions
+lua_State* luaGo_main(lua_State *L);
+int luaGo_load(lua_State *L, void *data, const char *chunkname, const char *mode);
+int luaGo_gc(lua_State *L);
+void luaGo_pushGoFunction(lua_State *L, unsigned long ud);
 
 #endif

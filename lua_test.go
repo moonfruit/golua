@@ -9,8 +9,12 @@ import (
 )
 
 func TestNewState(t *testing.T) {
-	state, err := NewState()
-	require.NoError(t, err)
+	state := NewState()
+	defer state.Close()
+
+	state.PushString("abc")
+	t.Log("----")
+	state.PrintStackl(t)
 
 	code, err := re.Asset("re.lua")
 	require.NoError(t, err)
@@ -26,6 +30,4 @@ func TestNewState(t *testing.T) {
 
 	t.Log("----")
 	state.PrintStackl(t)
-
-	state.Close()
 }

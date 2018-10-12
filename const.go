@@ -4,6 +4,8 @@ package golua
 #include <lua.h>
 #include <lauxlib.h>
 
+#include "cgo.h"
+
 const char *empty = "";
 const char *modeB = "b";
 const char *modeT = "t";
@@ -172,3 +174,5 @@ func (m LoadMode) mode() *C.char {
 
 	return empty
 }
+
+const MetaGoFunction = C.META_GO_FUNCTION

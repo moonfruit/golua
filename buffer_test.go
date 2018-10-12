@@ -6,8 +6,8 @@ import (
 )
 
 func TestBuffer(t *testing.T) {
-	state, err := NewState()
-	require.NoError(t, err)
+	state := NewState()
+	defer state.Close()
 
 	expected := "abc"
 
