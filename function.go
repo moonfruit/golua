@@ -5,19 +5,25 @@ import "C"
 
 type GoFunction func(state *State) int
 
+func (s *State) PushGoClosure(fun GoFunction, n int) {
+	s.PushGoValue(fun)
+	C.lua_pushcclosure(s.L, (C.lua_CFunction)(C.luaGo_callGoFunction), C.int(n+1))
+}
+
 func (s *State) PushGoFunction(fun GoFunction) {
-	C.luaGo_pushGoFunction(s.L, C.ulong(s.RefGoValue(fun)))
+	s.PushGoClosure(fun, 0)
 }
 
 func (s *State) ToGoFunction(idx int) (GoFunction, bool) {
-	id := s.testUserData(idx, MetaGoFunction)
-	if id == 0 {
+	if ret := C.luaGo_getGoFunction(s.L, C.int(idx)); ret == 0 {
 		return nil, false
 	}
-	return s.GetGoValue(id).(GoFunction), true
-}
+	defer s.Pop(1)
 
-func (s *State) CheckGoFunction(idx int) GoFunction {
-	id := s.checkUserData(idx, MetaGoFunction)
-	return s.GetGoValue(id).(GoFunction)
+	fun, ok := s.ToGoValue(-1).(GoFunction)
+	if !ok {
+		return nil, false
+	}
+
+	return fun, true
 }

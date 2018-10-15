@@ -209,14 +209,14 @@ func (s *State) DoFile(filename string) error {
 	if err := s.LoadFile(filename); err != nil {
 		return err
 	}
-	return s.pcall(0, MultiRet, 0)
+	return s.PCall(0, MultiRet, 0)
 }
 
 func (s *State) DoString(str string) error {
 	if err := s.LoadString(str); err != nil {
 		return err
 	}
-	return s.pcall(0, MultiRet, 0)
+	return s.PCall(0, MultiRet, 0)
 }
 
 func (s *State) Length(idx int) Integer {

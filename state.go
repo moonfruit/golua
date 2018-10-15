@@ -83,6 +83,12 @@ func (s *State) GetGoValue(id uintptr) interface{} {
 	return s.registry.Get(id)
 }
 
+func (s *State) PushGoValue(val interface{}) uintptr {
+	id := s.RefGoValue(val)
+	C.luaGo_pushGoValue(s.L, C.ulong(id))
+	return id
+}
+
 func (s *State) ToGoValue(idx int) interface{} {
 	id := *(*uintptr)(C.lua_touserdata(s.L, C.int(idx)))
 	return s.GetGoValue(id)

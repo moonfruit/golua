@@ -175,4 +175,4 @@ func (m LoadMode) mode() *C.char {
 	return empty
 }
 
-const MetaGoFunction = C.META_GO_FUNCTION
+const MetaGoValue = C.META_GO_VALUE

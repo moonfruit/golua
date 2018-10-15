@@ -351,8 +351,7 @@ func (s *State) Call(nArgs, nResults int) {
 
 // TODO: int (lua_pcallk) (lua_State *L, int nargs, int nresults, int errfunc, lua_KContext ctx, lua_KFunction k);
 
-// FIXME: PCall()
-func (s *State) pcall(nArgs, nResults, msgHandler int) error {
+func (s *State) PCall(nArgs, nResults, msgHandler int) error {
 	return fromLua(C.lua_pcallk(s.L, C.int(nArgs), C.int(nResults), C.int(msgHandler), 0, nil))
 }
 

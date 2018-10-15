@@ -16,8 +16,6 @@ func TestBuffer(t *testing.T) {
 	buf.AddStringf("%c%c", expected[1], expected[2])
 	buf.PushResult()
 
-	state.PrintStackl(t)
-
 	actual := state.ToString(-1)
 	require.Equal(t, expected, actual)
 

@@ -25,7 +25,7 @@ func TestNewState(t *testing.T) {
 	t.Log("----")
 	state.PrintStackl(t)
 
-	err = state.pcall(0, MultiRet, 0)
+	err = state.PCall(0, MultiRet, 0)
 	require.Error(t, err)
 
 	t.Log("----")
