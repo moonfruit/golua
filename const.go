@@ -12,9 +12,7 @@ const char *modeT = "t";
 const char *modeBT = "bt";
 */
 import "C"
-import (
-	"fmt"
-)
+import "fmt"
 
 type Integer = int64
 type Number = float64
@@ -31,8 +29,8 @@ const (
 )
 
 const (
-	KeyLoadedTable  = "_LOADED"
-	KeyPreLoadTable = "_PRELOAD"
+	KeyLoadedTable  = C.LUA_LOADED_TABLE
+	KeyPreloadTable = C.LUA_PRELOAD_TABLE
 )
 
 func UpValue(idx int) int {

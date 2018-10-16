@@ -421,12 +421,6 @@ func (s *State) Len(idx int) {
 	C.lua_len(s.L, C.int(idx))
 }
 
-func (s *State) StringToNumber(str string) uint {
-	cstr := C.CString(str)
-	defer cfree(cstr)
-	return uint(C.lua_stringtonumber(s.L, cstr))
-}
-
 /*
  * Other
  */
@@ -440,3 +434,4 @@ func (s *State) StringToNumber(str string) uint {
 // SKIP: void lua_setallocf (lua_State *L, lua_Alloc f, void *ud);
 // SKIP: int lua_numbertointeger (lua_Number n, lua_Integer *p);
 // SKIP: const char *lua_pushliteral (lua_State *L, const char *s);
+// SKIP: size_t lua_stringtonumber (lua_State *L, const char *s);

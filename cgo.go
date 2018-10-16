@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	defaultBufSize = 4096
+	defaultBufSize           = 4096
+	maxConsecutiveEmptyReads = 100
 )
 
 func cfree(p *C.char) {
@@ -40,7 +41,7 @@ func goCall(L *C.lua_State, ud uintptr) C.int {
 func goReader(L *C.lua_State, ud unsafe.Pointer, sz *C.size_t) *C.char {
 	ctx := mainStateFor(L).GetGoValue(uintptr(ud)).(*goReaderCtx)
 
-	for ctx.err == nil {
+	for i := 0; ctx.err == nil && i < maxConsecutiveEmptyReads; i++ {
 		var n int
 		n, ctx.err = ctx.Read(ctx.Bytes)
 		if n > 0 {
@@ -49,6 +50,9 @@ func goReader(L *C.lua_State, ud unsafe.Pointer, sz *C.size_t) *C.char {
 		}
 	}
 
+	if ctx.err == nil {
+		ctx.err = io.ErrNoProgress
+	}
 	*sz = 0
 	return nil
 }

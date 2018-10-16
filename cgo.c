@@ -2,6 +2,7 @@
 
 #include <lauxlib.h>
 #include <lua.h>
+#include <lualib.h>
 
 #include "_cgo_export.h"
 
@@ -12,6 +13,33 @@ static int luaGo_GoValueClose(lua_State *L);
 static int luaGo_upValueCount(lua_State *L);
 static int luaGo_getUpValueCount(lua_State *L, int idx);
 
+static const luaL_Reg loadedlibs[] = {{"_G", luaopen_base},
+                                      {LUA_LOADLIBNAME, luaopen_package},
+                                      {LUA_COLIBNAME, luaopen_coroutine},
+                                      {LUA_TABLIBNAME, luaopen_table},
+                                      {LUA_STRLIBNAME, luaopen_string},
+                                      {LUA_MATHLIBNAME, luaopen_math},
+                                      {LUA_UTF8LIBNAME, luaopen_utf8},
+                                      {LUA_DBLIBNAME, luaopen_debug},
+                                      {LUA_BITLIBNAME, luaopen_bit32},
+                                      {NULL, NULL}};
+
+void luaGo_openBasicLibs(lua_State *L) {
+    const luaL_Reg *lib;
+    /* "require" functions from 'loadedlibs' and set results to global table */
+    for (lib = loadedlibs; lib->func; lib++) {
+        luaL_requiref(L, lib->name, lib->func, 1);
+        lua_pop(L, 1); /* remove lib */
+    }
+}
+
+void luaGo_preload(lua_State *L, const char *modname, lua_CFunction f) {
+    luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
+    lua_pushcfunction(L, f);
+    lua_setfield(L, -2, modname);
+    lua_pop(L, 1); // remove PRELOAD table
+}
+
 lua_State *luaGo_main(lua_State *L) {
     if (!lua_checkstack(L, 1)) {
         return NULL;
@@ -21,6 +49,8 @@ lua_State *luaGo_main(lua_State *L) {
     lua_pop(L, 1);
     return thread;
 }
+
+int luaGo_call(lua_State *L, lua_CFunction f) { return f(L); }
 
 int luaGo_load(lua_State *L, void *data, const char *chunkname, const char *mode) {
     return lua_load(L, (lua_Reader)goReader, data, chunkname, mode);
@@ -84,8 +114,7 @@ int luaGo_callGoFunction(lua_State *L) {
 }
 
 int luaGo_getGoFunction(lua_State *L, int idx) {
-    lua_CFunction fun = lua_tocfunction(L, idx);
-    if (fun != luaGo_callGoFunction) {
+    if (lua_tocfunction(L, idx) != luaGo_callGoFunction) {
         return 0;
     }
 
@@ -94,8 +123,7 @@ int luaGo_getGoFunction(lua_State *L, int idx) {
         return 0;
     }
 
-    const char *name = lua_getupvalue(L, idx, value);
-    if (name == NULL) {
+    if (lua_getupvalue(L, idx, value) == NULL) {
         return 0;
     }
 

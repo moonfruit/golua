@@ -86,8 +86,13 @@ func (s *State) OptInteger(idx int, def Integer) Integer {
 	return s.CheckInteger(idx)
 }
 
-func (s *State) CheckStack(size int) {
-	C.luaL_checkstack(s.L, C.int(size), nil)
+func (s *State) CheckStack(size int, args ...interface{}) {
+	var cstr *C.char
+	if len(args) != 0 {
+		cstr = C.CString(fmt.Sprint(args...))
+		defer cfree(cstr)
+	}
+	C.luaL_checkstack(s.L, C.int(size), cstr)
 }
 
 func (s *State) CheckStackf(size int, format string, args ...interface{}) {
@@ -121,23 +126,15 @@ func (s *State) GetMetaTable(name string) Type {
 }
 
 func (s *State) TestUserData(idx int, name string) bool {
-	return s.testUserData(idx, name) != 0
-}
-
-func (s *State) testUserData(idx int, name string) uintptr {
 	cstr := C.CString(name)
 	defer cfree(cstr)
-	return *(*uintptr)(C.luaL_testudata(s.L, C.int(idx), cstr))
+	return C.luaL_testudata(s.L, C.int(idx), cstr) != nil
 }
 
 func (s *State) CheckUserData(idx int, name string) {
-	s.checkUserData(idx, name)
-}
-
-func (s *State) checkUserData(idx int, name string) uintptr {
 	cstr := C.CString(name)
 	defer cfree(cstr)
-	return *(*uintptr)(C.luaL_checkudata(s.L, C.int(idx), cstr))
+	C.luaL_checkudata(s.L, C.int(idx), cstr)
 }
 
 func (s *State) Where(lvl int) {
@@ -223,8 +220,6 @@ func (s *State) Length(idx int) Integer {
 	return Integer(C.luaL_len(s.L, C.int(idx)))
 }
 
-// TODO: LUALIB_API void (luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
-
 func (s *State) EnsureTable(idx int, name string) bool {
 	cstr := C.CString(name)
 	defer cfree(cstr)
@@ -232,13 +227,9 @@ func (s *State) EnsureTable(idx int, name string) bool {
 }
 
 // TODO: void (luaL_traceback) (lua_State *L, lua_State *L1, const char *msg, int level);
-// TODO: void (luaL_requiref) (lua_State *L, const char *modname, lua_CFunction openf, int glb);
 
-// TODO: void luaL_newlib (lua_State *L, const luaL_Reg l[]);
+// TODO: int luaL_fileresult (lua_State *L, int stat, const char *fname);
+// TODO: int luaL_execresult (lua_State *L, int stat);
 
 // SKIP: void luaL_checkversion (lua_State *L);
-// SKIP: int luaL_fileresult (lua_State *L, int stat, const char *fname);
-// SKIP: int luaL_execresult (lua_State *L, int stat);
 // SKIP: const char *luaL_gsub (lua_State *L, const char *s, const char *p, const char *r);
-
-// SKIP: void luaL_newlibtable (lua_State *L, const luaL_Reg l[]);
