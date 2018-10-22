@@ -2,8 +2,9 @@
 Go Binding for Lua
 
 TODO:
-* [ ] Lua standard packages loader
-* [ ] Package `lpeg` and `re` loader
+* [x] Lua standard packages loader
+* [x] Package `lpeg` and `re` loader
+* [ ] Better error handler
 * [ ] Support to write Lua package in Go
 * [ ] Support Lua API - `atpanic`
 * [ ] Support Lua API - `dump`

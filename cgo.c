@@ -56,7 +56,7 @@ int luaGo_load(lua_State *L, void *data, const char *chunkname, const char *mode
     return lua_load(L, (lua_Reader)goReader, data, chunkname, mode);
 }
 
-void luaGo_pushGoValue(lua_State *L, unsigned long ud) {
+void luaGo_pushGoValue(lua_State *L, uintptr_t ud) {
     *(GoUintptr *)lua_newuserdata(L, sizeof(GoUintptr)) = ud;
 
     if (luaL_newmetatable(L, META_GO_VALUE)) {
@@ -95,7 +95,7 @@ static int luaGo_GoValueEqual(lua_State *L) {
 
 static int luaGo_GoValueToString(lua_State *L) {
     GoUintptr *ud = (GoUintptr *)luaL_checkudata(L, 1, META_GO_VALUE);
-    lua_pushfstring(L, META_GO_VALUE ": %p", *ud);
+    goToString(L, *ud);
     return 1;
 }
 

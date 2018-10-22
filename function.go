@@ -33,6 +33,11 @@ type NamedGoFunction interface {
 	Call(state *State) int
 }
 
+func (s *State) Register(fun NamedGoFunction) {
+	s.pushClosure(fun, 0)
+	s.SetGlobal(fun.Name())
+}
+
 func (s *State) NewLib(funcs []NamedGoFunction) {
 	s.CreateTable(0, len(funcs))
 	s.SetFuncs(funcs, 0)
@@ -67,12 +72,12 @@ func (s *State) Require(opener NamedGoFunction, global bool) {
 	s.EnsureTable(RegistryIndex, KeyLoadedTable)
 	s.GetField(-1, name) // _LOADED[name]
 	if !s.ToBoolean(-1) {
-		s.Pop(1)
-		s.pushClosure(opener, 0)
-		s.PushString(name) // argument to open function
-		s.Call(1, 1)       // call 'opener' to open module
-		s.PushValue(-1)
-		s.SetField(-3, name) // _LOADED[name] = module
+		s.Pop(1)                 // remove field
+		s.pushClosure(opener, 0) // push open function
+		s.PushString(name)       // argument to open function
+		s.Call(1, 1)             // call 'opener' to open module
+		s.PushValue(-1)          // make copy of module (call result)
+		s.SetField(-3, name)     // _LOADED[name] = module
 	}
 	s.Remove(-2)
 	if global {

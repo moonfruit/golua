@@ -10,6 +10,7 @@ package golua
 */
 import "C"
 import (
+	"fmt"
 	"io"
 	"reflect"
 	"runtime"
@@ -26,18 +27,29 @@ func cfree(p *C.char) {
 }
 
 //export goFree
+//noinspection GoUnusedFunction
 func goFree(L *C.lua_State, ud uintptr) {
 	mainStateFor(L).UnRefGoValue(ud)
 }
 
 //export goCall
+//noinspection GoUnusedFunction
 func goCall(L *C.lua_State, ud uintptr) C.int {
 	state := mainStateFor(L)
 	fun := state.GetGoValue(ud).(GoFunction)
 	return C.int(fun(state))
 }
 
+//export goToString
+//noinspection GoUnusedFunction
+func goToString(L *C.lua_State, ud uintptr) {
+	value := mainStateFor(L).GetGoValue(ud)
+	str := fmt.Sprintf("%T: %[1]v", value)
+	C.lua_pushlstring(L, C._GoStringPtr(str), C.size_t(len(str)))
+}
+
 //export goReader
+//noinspection GoUnusedFunction
 func goReader(L *C.lua_State, ud unsafe.Pointer, sz *C.size_t) *C.char {
 	ctx := mainStateFor(L).GetGoValue(uintptr(ud)).(*goReaderCtx)
 

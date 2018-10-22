@@ -83,11 +83,6 @@ func (s *State) IsString(idx int) bool {
 	return C.lua_isstring(s.L, C.int(idx)) != 0
 }
 
-// FIXME: IsGoFunction ??
-func (s *State) IsCFunction(idx int) bool {
-	return C.lua_iscfunction(s.L, C.int(idx)) != 0
-}
-
 func (s *State) IsInteger(idx int) bool {
 	return C.lua_isinteger(s.L, C.int(idx)) != 0
 }
@@ -167,7 +162,6 @@ func (s *State) RawLen(idx int) uint {
 	return uint(C.lua_rawlen(s.L, C.int(idx)))
 }
 
-// TODO: lua_CFunction (lua_tocfunction) (lua_State *L, int idx);
 // TODO: void *(lua_touserdata) (lua_State *L, int idx);
 // TODO: lua_State *(lua_tothread) (lua_State *L, int idx);
 // TODO: const void *(lua_topointer) (lua_State *L, int idx);
@@ -219,10 +213,6 @@ func (s *State) PushBytes(b []byte) {
 func (s *State) pushChars(chars *C.char, len int) {
 	C.lua_pushlstring(s.L, chars, C.size_t(len))
 }
-
-// TODO: void (lua_pushcclosure) (lua_State *L, lua_CFunction fn, int n);
-
-// TODO: void lua_pushcfunction (lua_State *L, lua_CFunction f);
 
 func (s *State) PushBoolean(b bool) {
 	var val C.int
@@ -427,8 +417,8 @@ func (s *State) Len(idx int) {
 
 // TODO: void *lua_getextraspace (lua_State *L);
 
-// TODO: void lua_register (lua_State *L, const char *name, lua_CFunction f);
-
+// SKIP: int lua_iscfunction (lua_State *L, int index);
+// SKIP: lua_CFunction (lua_tocfunction) (lua_State *L, int idx);
 // SKIP: lua_State *lua_newstate (lua_Alloc f, void *ud);
 // SKIP: lua_Alloc lua_getallocf (lua_State *L, void **ud);
 // SKIP: void lua_setallocf (lua_State *L, lua_Alloc f, void *ud);
